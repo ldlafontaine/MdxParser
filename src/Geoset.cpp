@@ -20,7 +20,7 @@ Geoset::Geoset() :
 	lod{ 0 },
 	extentsCount{ 0 },
 	tangentsCount{ 0 },
-	skinCount{ 0 },
+	skinWeightsCount{ 0 },
 	textureCoordinateSetsCount{ 1 } {
 }
 
@@ -136,14 +136,20 @@ Geoset::Geoset(std::istream& stream, uint32_t version) : Geoset() {
 		std::string tag{ tagBuffer.begin(), tagBuffer.end() };
 
 		if (tag == "TANG") {
-			uint32_t tangentsCount;
 			stream.read((char*)&tangentsCount, sizeof(tangentsCount));
-			stream.ignore(sizeof(float) * (tangentsCount * 4));
+			for (unsigned int i = 0; i < tangentsCount; i++) {
+				std::array<float, 4> tangent;
+				stream.read((char*)&tangent, sizeof(tangent));
+				tangents.push_back(tangent);
+			}
 		}
 		else if (tag == "SKIN") {
-			uint32_t skinCount;
-			stream.read((char*)&skinCount, sizeof(skinCount));
-			stream.ignore(sizeof(uint8_t) * skinCount);
+			stream.read((char*)&skinWeightsCount, sizeof(skinWeightsCount));
+			for (unsigned int i = 0; i < skinWeightsCount; i++) {
+				uint8_t skinWeight;
+				stream.read((char*)&skinWeight, sizeof(skinWeight));
+				skinWeights.push_back(skinWeight);
+			}
 		}
 		else if (tag == "UVAS") {
 			stream.read((char*)&textureCoordinateSetsCount, sizeof(textureCoordinateSetsCount));
@@ -261,10 +267,10 @@ void Geoset::write(std::ostream& stream, uint32_t version) {
 			}
 		}
 
-		if (skinCount > 0) {
+		if (skinWeightsCount > 0) {
 			stream.write("SKIN", 4);
-			stream.write((char*)&skinCount, sizeof(skinCount));
-			stream.write(reinterpret_cast<char*>(skin.data()), (sizeof(uint8_t) * skinCount));
+			stream.write((char*)&skinWeightsCount, sizeof(skinWeightsCount));
+			stream.write(reinterpret_cast<char*>(skinWeights.data()), (sizeof(uint8_t) * skinWeightsCount));
 		}
 	}
 
@@ -384,6 +390,22 @@ std::vector<Extent> Geoset::getSequenceExtents() const {
 	return sequenceExtents;
 }
 
+uint32_t Geoset::getTangentsCount() const {
+	return tangentsCount;
+}
+
+std::vector<std::array<float, 4>> Geoset::getTangents() const {
+	return tangents;
+}
+
+uint32_t Geoset::getSkinWeightsCount() const {
+	return skinWeightsCount;
+}
+
+std::vector<uint8_t> Geoset::getSkinWeights() const {
+	return skinWeights;
+}
+
 uint32_t Geoset::getTextureCoordinateSetsCount() const {
 	return textureCoordinateSetsCount;
 }
@@ -498,6 +520,16 @@ void Geoset::setExtentsCount(uint32_t exentsCount) {
 
 void Geoset::setSequenceExtents(std::vector<Extent> sequenceExtents) {
 	this->sequenceExtents = sequenceExtents;
+}
+
+void Geoset::setTangents(std::vector<std::array<float, 4>> tangents) {
+	this->tangents = tangents;
+	this->tangentsCount = static_cast<uint32_t>(tangents.size());
+}
+
+void Geoset::setSkinWeights(std::vector<uint8_t> skinWeights) {
+	this->skinWeights = skinWeights;
+	this->skinWeightsCount = static_cast<uint32_t>(skinWeights.size());
 }
 
 void Geoset::setTextureCoordinateSetsCount(uint32_t textureCoordinateSetsCount) {

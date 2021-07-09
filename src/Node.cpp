@@ -105,6 +105,10 @@ uint32_t Node::getParentId() const {
 	return parentId;
 }
 
+bool Node::getFlag(Flag flag) const {
+	return (flags & static_cast<uint32_t>(flag)) == static_cast<uint32_t>(flag);
+}
+
 uint32_t Node::getFlags() const {
 	return flags;
 }
